@@ -15,10 +15,6 @@ object TimeTrackerSDK {
     }
 
     fun getTimeInSeconds(activity: AppCompatActivity): Long? {
-        return getTimeInSecondsFlow(activity)?.value
-    }
-
-    fun getTimeInSecondsFlow(activity: AppCompatActivity): StateFlow<Long>? {
-        return activityObservers[activity.javaClass]?.timeFlow
+        return activityObservers[activity.javaClass]?.getTime()
     }
 }

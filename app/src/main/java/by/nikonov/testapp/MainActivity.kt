@@ -20,31 +20,20 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         TimeTrackerSDK.attachActivity(this)
         setContentView(R.layout.activity_main)
-
-        lifecycleScope.launch {
-            lifecycle.repeatOnLifecycle(Lifecycle.State.RESUMED) {
-                TimeTrackerSDK.getTimeInSecondsFlow(this@MainActivity)
-                    ?.map {
-                        it / 1000
-                    }
-                    ?.onEach {
-                        findViewById<TextView>(R.id.time_view).text =
-                            getString(R.string.time_text, it.toString())
-                    }?.collect()
-            }
-        }
     }
 
     override fun onResume() {
         super.onResume()
         lifecycleScope.launch {
-            delay(3000)
-            TimeTrackerSDK.getTimeInSeconds(this@MainActivity)?.let {
-                Snackbar.make(
-                    findViewById<TextView>(R.id.time_view),
-                    "time: $it millis",
-                    600
-                ).show()
+            repeat(5){
+                delay(3000)
+                TimeTrackerSDK.getTimeInSeconds(this@MainActivity)?.let {
+                    Snackbar.make(
+                        findViewById<TextView>(R.id.time_view),
+                        "time: $it millis",
+                        600
+                    ).show()
+                }
             }
         }
     }
