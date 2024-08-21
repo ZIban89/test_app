@@ -6,11 +6,15 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.edit
 import androidx.lifecycle.DefaultLifecycleObserver
 import androidx.lifecycle.LifecycleOwner
+import androidx.lifecycle.lifecycleScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
-import java.util.Timer
-import java.util.TimerTask
+import kotlinx.coroutines.isActive
+import kotlinx.coroutines.launch
 
 private const val SHARED_PREFERENCES_FILE_KEY = "by.nikonov.timetrackersdk.PREFERENCES_FILE_KEY"
 private const val PERIOD_MILLIS = 100L
@@ -20,27 +24,26 @@ internal class TimeTrackerObserver :
 
     val timeFlow get() = _timeFlow.asStateFlow()
     private val _timeFlow = MutableStateFlow<Long>(0)
-
-    private val timer = Timer()
-    private var task: TimerTask? = null
+    private var job: Job? = null
 
     override fun onStart(owner: LifecycleOwner) {
         (owner as? Context)?.let {
             _timeFlow.value = getSharedPreferences(it).getLong(it.javaClass.simpleName, 0)
+
         }
     }
 
     override fun onResume(owner: LifecycleOwner) {
-        createTask()
-        timer.schedule(
-            task,
-            0,
-            PERIOD_MILLIS
-        )
+        job = owner.lifecycleScope.launch(Dispatchers.IO) {
+            while (isActive) {
+                delay(PERIOD_MILLIS)
+                _timeFlow.update { it + PERIOD_MILLIS }
+            }
+        }
     }
 
     override fun onPause(owner: LifecycleOwner) {
-        task?.cancel()
+        job?.cancel()
     }
 
     override fun onStop(owner: LifecycleOwner) {
@@ -53,14 +56,5 @@ internal class TimeTrackerObserver :
 
     private fun getSharedPreferences(context: Context): SharedPreferences {
         return context.getSharedPreferences(SHARED_PREFERENCES_FILE_KEY, Context.MODE_PRIVATE)
-    }
-
-    private fun createTask() {
-        task = object : TimerTask() {
-            override fun run() {
-                _timeFlow.update { it + PERIOD_MILLIS }
-            }
-
-        }
     }
 }
