@@ -25,6 +25,7 @@ internal class TimeTrackerObserver :
     val timeFlow get() = _timeFlow.asStateFlow()
     private val _timeFlow = MutableStateFlow<Long>(0)
     private var job: Job? = null
+    private var previousTime = 0L
 
     override fun onStart(owner: LifecycleOwner) {
         (owner as? Context)?.let {
@@ -35,15 +36,19 @@ internal class TimeTrackerObserver :
 
     override fun onResume(owner: LifecycleOwner) {
         job = owner.lifecycleScope.launch(Dispatchers.IO) {
+            previousTime = System.currentTimeMillis()
             while (isActive) {
                 delay(PERIOD_MILLIS)
-                _timeFlow.update { it + PERIOD_MILLIS }
+                val time = System.currentTimeMillis()
+                _timeFlow.update { it + time - previousTime }
+                previousTime = time
             }
         }
     }
 
     override fun onPause(owner: LifecycleOwner) {
         job?.cancel()
+        _timeFlow.update { it + System.currentTimeMillis() - previousTime }
     }
 
     override fun onStop(owner: LifecycleOwner) {
